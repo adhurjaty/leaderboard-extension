@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
 
-  "name": "Chrome Extension TypeScript Starter",
-  "description": "Chrome Extension, TypeScript, Visual Studio Code",
+  "name": "Guess My Word Leaderboard",
+  "description": "A chrome extension for easily adding your score to the Guess My Word leaderboard.",
   "version": "1.0",
 
   "options_ui": {
@@ -26,10 +26,19 @@
   },
 
   "permissions": [
-    "storage"
+    "storage",
+    "identity",
+    "scripting"
   ],
 
   "host_permissions": [
-    "<all_urls>"
-  ]
+    "https://hryanjones.com/guess-my-word"
+  ],
+
+  "oauth2": {
+    "client_id": "API_KEY",
+    "scopes": [
+      "https://www.googleapis.com/auth/spreadsheets"
+    ]
+  }
 }
