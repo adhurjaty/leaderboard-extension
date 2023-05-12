@@ -1,19 +1,24 @@
-import { GameMode, Leaderboard } from "./leaderboard";
+import { Leaderboard } from "./leaderboard";
 import Settings from "./models/settings";
-import { SheetClient } from "./sheetClient";
+import ApiClient from "./sheets/apiClient";
+import { SpreadsheetClient } from "./sheets/spreadsheetClient";
+
+export type GameMode = 'normal' | 'hard'
 
 export default async function updateLeaderboard(settings: Settings, score: string, mode: GameMode) {
-  console.log('Updating spreadsheet:', settings);
   chrome.identity.getAuthToken({ interactive: true }, async (token) => {
-    console.log('Token: ', token);
-
-    const client = new SheetClient(token, settings.sheetId);
-    const leaderboard = new Leaderboard(client, settings.teamName, mode);
-
-    try {
-      await leaderboard.inputScore(score);
-    } catch (e) {
-      console.log('Error:', e);
+    const apiClient = new ApiClient(
+      `https://sheets.googleapis.com/v4/spreadsheets/${settings.sheetId ?? ''}`,
+      token
+    );
+    const client = await SpreadsheetClient.create(apiClient);
+    const sheetClient = client.getSheet(mode);
+    if (!sheetClient) {
+      throw new Error(`Could not find sheet for mode ${mode}`);
     }
+
+    const leaderboard = new Leaderboard(sheetClient, settings.teamName);
+
+    await leaderboard.inputScore(score);
   });
 }

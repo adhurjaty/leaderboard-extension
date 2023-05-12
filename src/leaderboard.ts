@@ -1,12 +1,9 @@
-import { Sheet, SheetClient } from "./sheetClient";
-
-export type GameMode = 'normal' | 'hard'
+import { SheetClient } from "./sheets/sheetClient";
 
 export class Leaderboard {
-  private sheetMap: Map<GameMode, Sheet> = new Map();
   private teams: string[] = [];
 
-  constructor(private client: SheetClient, private teamName: string, private mode: GameMode) {
+  constructor(private client: SheetClient, private teamName: string) {
 
   }
 
@@ -16,34 +13,23 @@ export class Leaderboard {
   }
 
   private async possiblyCreateRow(): Promise<number> {
-    const sheetId = await this.getSheetId();
-
     const startIndex = await this.getStartIndex() ?? 2;
     const cellName = this.cellName(startIndex, 0);
 
-    const cell = await this.client.getCell(this.mode, cellName);
+    const cell = await this.client.getCell(cellName);
     console.log(cell);
     if (cell && this.isToday(cell)) {
       return startIndex;
     }
     if (cell) {
-      await this.client.createRow(sheetId, startIndex);
+      await this.client.createRow(startIndex);
     }
-    await this.client.editCell(this.mode, cellName, this.formatDate(new Date()));
+    await this.client.editCell(cellName, this.formatDate(new Date()));
     return startIndex;
   }
 
-  private async getSheetId(): Promise<number> {
-    const resp = await this.client.getSheet();
-    console.log(resp);
-    const { sheets } = resp;
-    return sheets
-      .map(x => x.properties)
-      .find((sheet) => sheet.title === this.mode)!.sheetId;
-  }
-
   private async getStartIndex(): Promise<number | null> {
-    const rangeResponse = await this.client.getRange(`${this.mode}!A3:A5`);
+    const rangeResponse = await this.client.getRange('A3:A5');
     const idx = rangeResponse.values
       ?.map((row) => row[0] as string)
       ?.findIndex(date => this.isToday(date))
@@ -64,11 +50,11 @@ export class Leaderboard {
     const colIndex = await this.getTeamColIndex();
     const cellName = this.cellName(rowIndex, colIndex);
 
-    await this.client.editCell(this.mode, cellName, score);
+    await this.client.editCell(cellName, score);
   }
 
   private async getTeamColIndex(): Promise<number> {
-    const { values } = await this.client.getRange(`${this.mode}!B2:Z2`);
+    const { values } = await this.client.getRange('B2:Z2');
 
     return values[0].findIndex((team) =>
       (team as string).toLowerCase().startsWith(this.teamName.toLowerCase())) + 1;
