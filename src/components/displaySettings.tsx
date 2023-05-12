@@ -4,13 +4,10 @@ import Settings from '../models/settings';
 interface Props {
   settings: Settings;
   onEdit: () => void;
+  followLink: () => void;
 }
 
-const DisplaySettings = ({ settings, onEdit }: Props) => {
-  const followLink = () => {
-    chrome.tabs.create({ url: `https://docs.google.com/spreadsheets/d/${settings.sheetId}` });
-  };
-
+const DisplaySettings = ({ settings, onEdit, followLink }: Props) => {
   return (
     <div>
       <h2>Team Name: {settings.teamName}</h2>

@@ -5,7 +5,9 @@ import Settings from "./models/settings";
 import EditSettings from "./components/editSettings";
 import DisplaySettings from "./components/displaySettings";
 import updateLeaderboard from "./spreadsheet";
-import { GameMode } from "./leaderboard";
+import GameMode from "./models/gameMode";
+import { SpreadsheetClient } from "./sheets/spreadsheetClient";
+import ApiClient from "./sheets/apiClient";
 
 const defaultSettings = {
   teamName: "",
@@ -13,21 +15,11 @@ const defaultSettings = {
 };
 
 const Popup = () => {
-  const [count, setCount] = useState(0);
-  const [currentURL, setCurrentURL] = useState<string>();
   const [editMode, setEditMode] = useState(false);
   const [settings, setSettings] = useState<Settings>(defaultSettings)
+  const [spreadsheetClient, setSpreadsheetClient] = useState<SpreadsheetClient | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    chrome.action.setBadgeText({ text: count.toString() });
-  }, [count]);
-
-  useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      setCurrentURL(tabs[0].url);
-    });
-  }, []);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     getSettings().then(settings => {
@@ -35,7 +27,22 @@ const Popup = () => {
     }).catch((err) => setError(err.message ?? err));
   }, []);
 
+  useEffect(() => {
+    if (settings.sheetId) {
+      chrome.identity.getAuthToken({ interactive: true }, async (token) => {
+        const apiClient = new ApiClient(
+          `https://sheets.googleapis.com/v4/spreadsheets/${settings.sheetId ?? ''}`,
+          token
+        );
+        SpreadsheetClient.create(apiClient)
+          .then((client) => setSpreadsheetClient(client))
+          .catch((err) => setError(err.message ?? err));
+      });
+    }
+  }, [settings])
+
   const onSaveSettings = async (newSettings: Settings) => {
+    setError(null);
     try {
       await saveSettings(newSettings);
       setSettings(newSettings);
@@ -46,43 +53,38 @@ const Popup = () => {
     }
   }
 
-  const login = () => {
-    console.log('here');
-    chrome.identity.getAuthToken({ interactive: true }, function (token) {
-      console.log(token);
-    });
-  };
-
   const onClickUpdate = () => {
+    setError(null);
+
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       const tab = tabs[0];
       if (!tab.id) {
         return;
       }
 
-      let score: string | undefined;
-      let mode: GameMode | undefined;
+      debugger;
 
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: () => {
-          function byXpath(xp: string) {
+          debugger;
+          function byXpath(xp: string): Node | null {
             return document.evaluate(
               xp, document, null,
               XPathResult.FIRST_ORDERED_NODE_TYPE, null
             ).singleNodeValue
           }
-
+          
           const content = byXpath('//*[text()="You got it! 🎉🎉🎉"]/following-sibling::p');
           const parsed = content?.textContent?.match(/\((.*?)\)/)
           if (!parsed || parsed.length < 2) {
             return;
           }
-          score = parsed[1];
+          const score = parsed[1];
           console.log('Score:', score);
 
           const modeSelect = document.getElementById('difficulty-changer');
-          mode = modeSelect?.className as GameMode;
+          const mode = modeSelect?.className as GameMode;
           console.log('Mode:', mode);
 
           return {
@@ -94,11 +96,50 @@ const Popup = () => {
         if (!res || res.length < 1) {
           return;
         }
+        if (!spreadsheetClient) {
+          setError(`Could not connect to spreadsheet ${settings.sheetId}`);
+          return;
+        }
         const { score, mode } = res[0].result;
-        updateLeaderboard(settings, score, mode);
+        setIsSubmitting(true);
+        updateLeaderboard(spreadsheetClient, settings.teamName, score, mode)
+          .catch((err) => setError(err.message ?? err))
+          .finally(() => setIsSubmitting(false));
       });
     });
   }
+
+  const followLink = () => {
+    if (!spreadsheetClient) {
+      setError(`Could not connect to spreadsheet ${settings.sheetId}`);
+      return;
+    }
+
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      const tab = tabs[0];
+      if (!tab.id) {
+        return;
+      }
+
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          const modeSelect = document.getElementById('difficulty-changer');
+          return modeSelect?.className as GameMode;
+        },
+      }, (res) => {
+        if (!res || res.length < 1) {
+          return;
+        }
+
+        const mode = res[0].result;
+        const currentSheetId = spreadsheetClient.getSheet(mode)?.sheetId;
+        chrome.tabs.create({
+          url: `https://docs.google.com/spreadsheets/d/${settings.sheetId}/edit#gid=${currentSheetId ?? 0}`
+        });
+      });
+    });
+  };
 
   return (
     <div style={{
@@ -114,11 +155,12 @@ const Popup = () => {
         <DisplaySettings
           settings={settings}
           onEdit={() => setEditMode(true)}
+          followLink={followLink}
         />
       )}
-      {error && <p color="red">{error}</p>}
+      {error && <p style={{color: "red"}}>{error}</p>}
       <hr />
-      <button onClick={onClickUpdate}>Update Spreadsheet</button>
+      <button onClick={onClickUpdate} disabled={isSubmitting}>Update Spreadsheet</button>
     </div>
   );
 };

@@ -14,13 +14,25 @@ interface SheetResponse {
   sheets: Sheet[]
 }
 
+interface ErrorResponse {
+  error: {
+    code: number,
+    message: string,
+    status: string,
+  };
+}
+
 
 export class SpreadsheetClient {
   static async create(apiClient: ApiClient): Promise<SpreadsheetClient> {
     const sheetResponse = await apiClient.get('/')
-      .then(response => response.json() as Promise<SheetResponse>);
+      .then(response => response.json() as Promise<SheetResponse | ErrorResponse>);
 
-    return new SpreadsheetClient(apiClient, sheetResponse.sheets);
+    if ((sheetResponse as ErrorResponse).error) {
+      throw new Error('Could not find spreadsheet');
+    }
+
+    return new SpreadsheetClient(apiClient, (sheetResponse as SheetResponse).sheets);
   }
 
   private sheetClients: SheetClient[] = [];
