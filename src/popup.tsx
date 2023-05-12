@@ -4,10 +4,11 @@ import { getSettings, saveSettings } from "./store";
 import Settings from "./models/settings";
 import EditSettings from "./components/editSettings";
 import DisplaySettings from "./components/displaySettings";
-import updateLeaderboard from "./spreadsheet";
 import GameMode from "./models/gameMode";
 import { SpreadsheetClient } from "./sheets/spreadsheetClient";
 import ApiClient from "./sheets/apiClient";
+import { Leaderboard, TeamResult } from "./leaderboard";
+import LeaderboardDisplay from "./components/leaderboardDisplay";
 
 const defaultSettings = {
   teamName: "",
@@ -18,6 +19,8 @@ const Popup = () => {
   const [editMode, setEditMode] = useState(false);
   const [settings, setSettings] = useState<Settings>(defaultSettings)
   const [spreadsheetClient, setSpreadsheetClient] = useState<SpreadsheetClient | null>(null);
+  const [scoreboard, setScoreboard] = useState<TeamResult[]>([]);
+  const [currentMode, setCurrentMode] = useState<GameMode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -62,12 +65,9 @@ const Popup = () => {
         return;
       }
 
-      debugger;
-
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: () => {
-          debugger;
           function byXpath(xp: string): Node | null {
             return document.evaluate(
               xp, document, null,
@@ -92,7 +92,7 @@ const Popup = () => {
             mode,
           }
         },
-      }, (res) => {
+      }, async (res) => {
         if (!res || res.length < 1) {
           return;
         }
@@ -102,9 +102,24 @@ const Popup = () => {
         }
         const { score, mode } = res[0].result;
         setIsSubmitting(true);
-        updateLeaderboard(spreadsheetClient, settings.teamName, score, mode)
-          .catch((err) => setError(err.message ?? err))
-          .finally(() => setIsSubmitting(false));
+        setCurrentMode(mode);
+
+        try {
+          const sheetClient = spreadsheetClient.getSheet(mode);
+          if (!sheetClient) {
+            throw new Error(`Could not find sheet for mode ${mode}`);
+          }
+
+          const leaderboard = new Leaderboard(sheetClient, settings.teamName);
+          await leaderboard.inputScore(score);
+
+          const teamResults = await leaderboard.getScores();
+          setScoreboard(teamResults);
+        } catch (err) {
+          setError((err as Error).message ?? err)
+        } finally {
+          setIsSubmitting(false);
+        }
       });
     });
   }
@@ -161,6 +176,13 @@ const Popup = () => {
       {error && <p style={{color: "red"}}>{error}</p>}
       <hr />
       <button onClick={onClickUpdate} disabled={isSubmitting}>Update Spreadsheet</button>
+      {currentMode && scoreboard && scoreboard.length > 0 && (
+        <>
+          <hr />
+          <LeaderboardDisplay teamResults={scoreboard} mode={currentMode} />
+        </>
+      )}
+
     </div>
   );
 };
