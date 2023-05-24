@@ -10,12 +10,12 @@ interface Props {
 const DisplaySettings = ({ settings, onEdit, followLink }: Props) => {
   return (
     <div>
-      <h2>Team Name: {settings.teamName}</h2>
+      <h2>Team Name: {settings?.teamName}</h2>
       <br />
       <h2>
-        Sheet ID: {settings.sheetId && 
+        Sheet ID: {settings?.sheetId && 
         <a href="#" onClick={followLink}>
-          {settings.sheetId}
+          {settings?.sheetId}
         </a> ||
         ''
         }

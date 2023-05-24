@@ -31,10 +31,10 @@ const Popup = () => {
   }, []);
 
   useEffect(() => {
-    if (settings.sheetId) {
+    if (settings?.sheetId) {
       chrome.identity.getAuthToken({ interactive: true }, async (token) => {
         const apiClient = new ApiClient(
-          `https://sheets.googleapis.com/v4/spreadsheets/${settings.sheetId ?? ''}`,
+          `https://sheets.googleapis.com/v4/spreadsheets/${settings?.sheetId ?? ''}`,
           token
         );
         SpreadsheetClient.create(apiClient)
@@ -97,7 +97,7 @@ const Popup = () => {
           return;
         }
         if (!spreadsheetClient) {
-          setError(`Could not connect to spreadsheet ${settings.sheetId}`);
+          setError(`Could not connect to spreadsheet ${settings?.sheetId}`);
           return;
         }
         const { score, mode } = res[0].result;
@@ -110,7 +110,7 @@ const Popup = () => {
             throw new Error(`Could not find sheet for mode ${mode}`);
           }
 
-          const leaderboard = new Leaderboard(sheetClient, settings.teamName);
+          const leaderboard = new Leaderboard(sheetClient, settings?.teamName);
           await leaderboard.inputScore(score);
 
           const teamResults = await leaderboard.getScores();
@@ -126,7 +126,7 @@ const Popup = () => {
 
   const followLink = () => {
     if (!spreadsheetClient) {
-      setError(`Could not connect to spreadsheet ${settings.sheetId}`);
+      setError(`Could not connect to spreadsheet ${settings?.sheetId}`);
       return;
     }
 
@@ -150,7 +150,7 @@ const Popup = () => {
         const mode = res[0].result;
         const currentSheetId = spreadsheetClient.getSheet(mode)?.sheetId;
         chrome.tabs.create({
-          url: `https://docs.google.com/spreadsheets/d/${settings.sheetId}/edit#gid=${currentSheetId ?? 0}`
+          url: `https://docs.google.com/spreadsheets/d/${settings?.sheetId}/edit#gid=${currentSheetId ?? 0}`
         });
       });
     });
