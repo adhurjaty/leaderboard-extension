@@ -115,6 +115,7 @@ const Popup = () => {
 
           const teamResults = await leaderboard.getScores();
           setScoreboard(teamResults);
+          await leaderboard.setWinningColors(teamResults);
         } catch (err) {
           setError((err as Error).message ?? err)
         } finally {

@@ -9,6 +9,22 @@ interface RangeResponse {
   values: string[][] | number[][]
 }
 
+interface Cell {
+  row: number;
+  column: number;
+}
+
+interface Range {
+  start: Cell;
+  end: Cell;
+}
+
+interface Color {
+  red: number;
+  green: number;
+  blue: number;
+}
+
 export class SheetClient {
   public title = '';
   public sheetId = 0;
@@ -53,6 +69,48 @@ export class SheetClient {
     const endpoint = `/values/${this.title}!${cell}:${cell}?valueInputOption=RAW`;
     return await this.apiClient.put(endpoint, {
       values: [[value]],
+    });
+  }
+
+  public async setCellOrRangeColor(cellOrRange: Cell | Range, color: Color): Promise<Response> {
+    const cellOrRangeObject = 'row' in cellOrRange
+      ? {
+        start: {
+          sheetId: this.sheetId,
+          rowIndex: cellOrRange.row,
+          columnIndex: cellOrRange.column,
+        }
+      }
+      : {
+        range: {
+          sheetId: this.sheetId,
+          startRowIndex: cellOrRange.start.row,
+          endRowIndex: cellOrRange.end.row,
+          startColumnIndex: cellOrRange.start.column,
+          endColumnIndex: cellOrRange.end.column,
+        }
+      };
+    
+    return await this.apiClient.post(':batchUpdate', {
+      requests:[
+        {
+          updateCells: {
+            rows: [
+              {
+                values: [
+                  {
+                    userEnteredFormat: {
+                      backgroundColor: color,
+                    },
+                  },
+                ],
+              }
+            ],
+            fields: 'userEnteredFormat.backgroundColor',
+            ...cellOrRangeObject,
+          },
+        },
+      ],
     });
   }
 }

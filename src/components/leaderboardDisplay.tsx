@@ -1,16 +1,7 @@
 import React from "react";
 import { Score, TeamResult } from "../leaderboard";
 import GameMode from "../models/gameMode";
-
-type Winners =
-  | {
-    time: TeamResult;
-    guesses: TeamResult;
-  }
-  | {
-    solid: TeamResult;
-  }
-  | null;
+import { scoreboard } from "../utils"
 
 interface Props {
   mode: GameMode;
@@ -41,35 +32,8 @@ const LeaderboardDisplay = ({ mode, teamResults }: Props) => {
   const teamsPlayed = teamResults.filter(team => team.score !== null);
   const teamsRemaining = teamResults.filter(team => team.score === null);
 
-  const scoreboard : () => Winners = () => {
-    if (teamsPlayed.length === 0) {
-      return null;
-    };
-
-    const timeLeader = teamsPlayed
-      .reduce((prev, curr) => {
-        return prev.score!.time < curr.score!.time ? prev : curr;
-      }, teamsPlayed[0]);
-
-    const guessLeader = teamsPlayed
-      .reduce((prev, curr) => {
-        return prev.score!.guesses < curr.score!.guesses ? prev : curr;
-      }, teamsPlayed[0]);
-
-    if (timeLeader === guessLeader) {
-      return {
-        solid: timeLeader,
-      };
-    }
-
-    return {
-      time: timeLeader,
-      guesses: guessLeader,
-    };
-  }
-
   const winnersDisplay = () => {
-    const winners = scoreboard();
+    const winners = scoreboard(teamsPlayed);
 
     if (!winners) {
       return (<></>);

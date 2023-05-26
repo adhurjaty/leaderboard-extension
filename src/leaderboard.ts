@@ -1,4 +1,5 @@
 import { SheetClient } from "./sheets/sheetClient";
+import { scoreboard } from "./utils";
 
 export interface TeamResult {
   teamName: string;
@@ -8,6 +9,30 @@ export interface Score {
   time: number;
   guesses: number;
 }
+
+const BLANK_COLOR = {
+  red: 1,
+  green: 1,
+  blue: 1,
+};
+
+const SOLID_WIN_COLOR = {
+  red: 1,
+  green: 229 / 255,
+  blue: 153 / 255,
+};
+
+const TIME_WIN_COLOR = {
+  red: 201 / 255,
+  green: 218 / 255,
+  blue: 248 / 255,
+};
+
+const GUESS_WIN_COLOR = {
+  red: 234 / 255,
+  green: 209 / 255,
+  blue: 220 / 255,
+};
 
 export class Leaderboard {
   constructor(private client: SheetClient, private teamName: string) { }
@@ -32,6 +57,66 @@ export class Leaderboard {
           score: this.convertToScore(cell),
         };
       })));
+  }
+
+  public async setWinningColors(results: TeamResult[]): Promise<void> {
+    const row = await this.getStartIndex();
+    if (!row) {
+      return;
+    }
+
+    const teams = await this.getTeams();
+    const teamsPlayed = results.filter(team => team.score !== null);
+
+    const winners = scoreboard(teamsPlayed);
+
+    // clear existing colors
+    await this.client.setCellOrRangeColor(
+      {
+        start: {
+          row,
+          column: 1,
+        },
+        end: {
+          row: row + 1,
+          column: teams.length + 2,
+        }
+      },
+      BLANK_COLOR
+    );
+
+    // set new colors
+    if (winners && 'solid' in winners) {
+      await this.client.setCellOrRangeColor(
+        {
+          row,
+          column: teams.findIndex(x => x === winners.solid.teamName) + 1
+        },
+        SOLID_WIN_COLOR
+      );
+    }
+
+    if (winners && 'time' in winners) {
+      await Promise.resolve(
+        [
+          this.client.setCellOrRangeColor(
+            {
+              row,
+              column: teams.findIndex(x => x === winners.time.teamName) + 1
+            },
+            TIME_WIN_COLOR
+          ),
+          this.client.setCellOrRangeColor(
+            {
+              row,
+              column: teams.findIndex(x => x === winners.guesses.teamName) + 1
+            },
+            GUESS_WIN_COLOR
+          )
+        ]
+      );
+    }
+
   }
 
   private async getOrCreateRow(): Promise<number> {
