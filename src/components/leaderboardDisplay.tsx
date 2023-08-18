@@ -32,6 +32,16 @@ const LeaderboardDisplay = ({ mode, teamResults }: Props) => {
   const teamsPlayed = teamResults.filter(team => team.score !== null);
   const teamsRemaining = teamResults.filter(team => team.score === null);
 
+  const teamsDisplay = (teams: TeamResult[]) => (
+    <>
+      {
+        teams.map(team => (
+          <p key={team.teamName}>{displayResult(team)}</p>
+        ))
+      }
+    </>
+  );
+
   const winnersDisplay = () => {
     const winners = scoreboard(teamsPlayed);
 
@@ -43,7 +53,7 @@ const LeaderboardDisplay = ({ mode, teamResults }: Props) => {
       return (
         <div>
           <h3>{solidWin()}</h3>
-          <p>{displayResult(winners.solid)}</p>
+          {teamsDisplay(winners.solid)}
         </div>
       );
     }
@@ -51,9 +61,9 @@ const LeaderboardDisplay = ({ mode, teamResults }: Props) => {
     return (
       <div>
         <h3>{wonTime()}</h3>
-        <p>{displayResult(winners.time)}</p>
+        {teamsDisplay(winners.time)}
         <h3>{wonGuesses()}</h3>
-        <p>{displayResult(winners.guesses)}</p>
+        {teamsDisplay(winners.guesses)}
       </div>
     );
   }

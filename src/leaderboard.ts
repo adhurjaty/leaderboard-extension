@@ -10,6 +10,12 @@ export interface Score {
   guesses: number;
 }
 
+interface Color {
+  red: number;
+  green: number;
+  blue: number;
+}
+
 const BLANK_COLOR = {
   red: 1,
   green: 1,
@@ -85,34 +91,26 @@ export class Leaderboard {
       BLANK_COLOR
     );
 
-    // set new colors
-    if (winners && 'solid' in winners) {
-      await this.client.setCellOrRangeColor(
+    const colorTeams = async (results: TeamResult[], color: Color) => {
+      await Promise.allSettled(results.map(result => this.client.setCellOrRangeColor(
         {
           row,
-          column: teams.findIndex(x => x === winners.solid.teamName) + 1
+          column: teams.findIndex(x => x === result.teamName) + 1
         },
-        SOLID_WIN_COLOR
-      );
+        color
+      )));
+    }
+
+    // set new colors
+    if (winners && 'solid' in winners) {
+      await colorTeams(winners.solid, SOLID_WIN_COLOR);
     }
 
     if (winners && 'time' in winners) {
-      await Promise.resolve(
+      await Promise.allSettled(
         [
-          this.client.setCellOrRangeColor(
-            {
-              row,
-              column: teams.findIndex(x => x === winners.time.teamName) + 1
-            },
-            TIME_WIN_COLOR
-          ),
-          this.client.setCellOrRangeColor(
-            {
-              row,
-              column: teams.findIndex(x => x === winners.guesses.teamName) + 1
-            },
-            GUESS_WIN_COLOR
-          )
+          colorTeams(winners.time, TIME_WIN_COLOR),
+          colorTeams(winners.guesses, GUESS_WIN_COLOR)
         ]
       );
     }
@@ -177,14 +175,14 @@ export class Leaderboard {
   }
 
   private convertToScore(scoreString: string | null): Score | null {
-    const regex = /(?<guesses>\d+) guesses in (?:(?<minutes>\d+)m\s)?(?<seconds>\d+)s/;
+    const regex = /(?<guesses>\d+) guesses in (?:(?<minutes>\d+)m\s)?(?<seconds>\d+)?s/;
     const result = regex.exec(scoreString ?? '');
     if (!result) {
       return null;
     }
-    const { minutes, seconds, guesses } = result.groups as { minutes?: string, seconds: string, guesses: string };
+    const { minutes, seconds, guesses } = result.groups as { minutes?: string, seconds?: string, guesses: string };
     return {
-      time: parseInt(minutes ?? '0') * 60 + parseInt(seconds),
+      time: parseInt(minutes ?? '0') * 60 + parseInt(seconds ?? '0'),
       guesses: parseInt(guesses),
     };
   }

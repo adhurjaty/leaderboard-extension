@@ -2,11 +2,11 @@ import { TeamResult } from "./leaderboard";
 
 type Winners =
   | {
-    time: TeamResult;
-    guesses: TeamResult;
+    time: TeamResult[];
+    guesses: TeamResult[];
   }
   | {
-    solid: TeamResult;
+    solid: TeamResult[];
   }
   | null;
 
@@ -15,24 +15,21 @@ export const scoreboard: (_: TeamResult[]) => Winners = (teamsPlayed: TeamResult
     return null;
   };
 
-  const timeLeader = teamsPlayed
-    .reduce((prev, curr) => {
-      return prev.score!.time < curr.score!.time ? prev : curr;
-    }, teamsPlayed[0]);
+  const bestTime = Math.min(...teamsPlayed.map(x => x.score!.time));
+  const fewestGuesses = Math.min(...teamsPlayed.map(x => x.score!.guesses));
 
-  const guessLeader = teamsPlayed
-    .reduce((prev, curr) => {
-      return prev.score!.guesses < curr.score!.guesses ? prev : curr;
-    }, teamsPlayed[0]);
+  const timeLeaders = teamsPlayed.filter(x => x.score!.time === bestTime);
+  const guessLeaders = teamsPlayed.filter(x => x.score!.guesses === fewestGuesses);
+  const solidWinners = timeLeaders.filter(x => guessLeaders.includes(x));
 
-  if (timeLeader === guessLeader) {
+  if (solidWinners.length > 0) {
     return {
-      solid: timeLeader,
+      solid: solidWinners,
     };
   }
 
   return {
-    time: timeLeader,
-    guesses: guessLeader,
+    time: timeLeaders,
+    guesses: guessLeaders,
   };
 };
