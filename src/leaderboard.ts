@@ -148,7 +148,7 @@ export class Leaderboard {
   }
 
   private formatDate(date: Date): string {
-    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString().slice(2)}`;
+    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString()}`;
   }
 
   private async editScoreCell(rowIndex: number, score: string): Promise<void> {
