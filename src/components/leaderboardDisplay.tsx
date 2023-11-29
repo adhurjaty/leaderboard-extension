@@ -1,7 +1,8 @@
 import React from "react";
-import { Color, GUESS_WIN_COLOR, SOLID_WIN_COLOR, Score, TIME_WIN_COLOR, TeamResult } from "../leaderboard";
+import { TeamResult } from "../leaderboard";
 import GameMode from "../models/gameMode";
 import { scoreboard } from "../utils"
+import { GUESS_WIN_COLOR, SOLID_WIN_COLOR, TIME_WIN_COLOR, convertToCssColor } from "../colors";
 
 interface Props {
   mode: GameMode;
@@ -28,10 +29,6 @@ const LeaderboardDisplay = ({ mode, teamResults, teamName }: Props) => {
 
   const displayGuessResult = (result: TeamResult) => {
     return `${result.teamName} - ${result.score!.guesses}`;
-  }
-
-  const convertToCssColor = (color: Color) => {
-    return `${color.red * 255} ${color.green * 255} ${color.blue * 255}`
   }
 
   const backgroundColor = (team: TeamResult) => {
