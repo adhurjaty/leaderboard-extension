@@ -180,7 +180,11 @@ const Popup = () => {
       {currentMode && scoreboard && scoreboard.length > 0 && (
         <>
           <hr />
-          <LeaderboardDisplay teamResults={scoreboard} mode={currentMode} />
+          <LeaderboardDisplay
+            teamResults={scoreboard}
+            mode={currentMode}
+            teamName={settings.teamName}
+          />
         </>
       )}
 

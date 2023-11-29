@@ -3,7 +3,7 @@
 
   "name": "Guess My Word Leaderboard",
   "description": "A chrome extension for easily adding your score to the Guess My Word leaderboard.",
-  "version": "1.0",
+  "version": "1.3",
 
   "options_ui": {
     "page": "options.html"
@@ -37,7 +37,7 @@
   ],
 
   "oauth2": {
-    "client_id": "API_KEY",
+    "client_id": "341629176276-qv23ump2ick2nga1ipaebcsndehjobgm.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/spreadsheets"
     ]

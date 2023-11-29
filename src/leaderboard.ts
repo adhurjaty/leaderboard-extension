@@ -10,7 +10,7 @@ export interface Score {
   guesses: number;
 }
 
-interface Color {
+export interface Color {
   red: number;
   green: number;
   blue: number;
@@ -22,23 +22,23 @@ const BLANK_COLOR = {
   blue: 1,
 };
 
-const SOLID_WIN_COLOR = {
+export const SOLID_WIN_COLOR = {
   red: 1,
   green: 229 / 255,
   blue: 153 / 255,
-};
+} as const;
 
-const TIME_WIN_COLOR = {
+export const TIME_WIN_COLOR = {
   red: 201 / 255,
   green: 218 / 255,
   blue: 248 / 255,
-};
+} as const;
 
-const GUESS_WIN_COLOR = {
+export const GUESS_WIN_COLOR = {
   red: 234 / 255,
   green: 209 / 255,
   blue: 220 / 255,
-};
+} as const;
 
 export class Leaderboard {
   constructor(private client: SheetClient, private teamName: string) { }
@@ -105,16 +105,12 @@ export class Leaderboard {
     if (winners && 'solid' in winners) {
       await colorTeams(winners.solid, SOLID_WIN_COLOR);
     }
-
-    if (winners && 'time' in winners) {
-      await Promise.allSettled(
-        [
-          colorTeams(winners.time, TIME_WIN_COLOR),
-          colorTeams(winners.guesses, GUESS_WIN_COLOR)
-        ]
-      );
+    if (winners?.time) {
+      await colorTeams(winners.time, TIME_WIN_COLOR)
     }
-
+    if (winners?.guesses) {
+      await colorTeams(winners.guesses, GUESS_WIN_COLOR)
+    }
   }
 
   private async getOrCreateRow(): Promise<number> {
