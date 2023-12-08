@@ -23,5 +23,5 @@ export const GUESS_WIN_COLOR = {
 } as const;
 
 export const convertToCssColor = (color: Color) => {
-  return `${color.red * 255} ${color.green * 255} ${color.blue * 255}`
+  return `rgb(${color.red * 255} ${color.green * 255} ${color.blue * 255})`
 }

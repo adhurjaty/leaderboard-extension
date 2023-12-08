@@ -31,50 +31,66 @@ const LeaderboardDisplay = ({ mode, teamResults, teamName }: Props) => {
     return `${result.teamName} - ${result.score!.guesses}`;
   }
 
-  const backgroundColor = (team: TeamResult) => {
+  const backgroundColor = (team: TeamResult, winType: 'guess' | 'time') => {
     if (winners && 'solid' in winners && winners.solid.includes(team)) {
       return convertToCssColor(SOLID_WIN_COLOR)
     }
-    if (winners?.guesses && winners.guesses.includes(team)) {
+    if (winType === 'guess' && winners?.guesses && winners.guesses.includes(team)) {
       return convertToCssColor(GUESS_WIN_COLOR)
     }
-    if (winners?.time && winners.time.includes(team)) {
+    if (winType === 'time' && winners?.time && winners.time.includes(team)) {
       return convertToCssColor(TIME_WIN_COLOR)
     }
     return 'inherit'
   }
 
-  const teamsDisplay = (teams: TeamResult[], display: (teeam: TeamResult) => string) => (
-    <ul>
+  const teamsDisplay = (teams: TeamResult[], display: (team: TeamResult) => JSX.Element) => (
+    <ul style={{
+      lineHeight: '1.5em',
+      listStyleType: 'none',
+      paddingLeft: '0px',
+    }}>
       {
-        teams.map(team => (
-          <li
-            key={team.teamName}
-            style={{
-              fontWeight: team.teamName === teamName ? 'bold' : 'normal',
-              backgroundColor: backgroundColor(team)
-            }}
-          >
-            {display(team)}
-          </li>
-        ))
+        teams.map(team => display(team))
       }
     </ul>
   );
 
   const leaderboardDisplay = () => {
+    const liStyle = (team: TeamResult, liColor: string) => ({
+      fontWeight: team.teamName === teamName ? 'bold' : 'normal',
+      backgroundColor: liColor,
+      fontSize: '1.4em',
+      padding: '0.25em 0em 0.25em 0.5em',
+      marginBottom: '0.25em',
+    } as const);
+
     const columns = [
       {
         heading: 'Time',
         teamResults: [...teamsPlayed]
-          .sort((a, b) => a.score!.time - b.score!.time),
-        displayFn: displayTimeResult
+          .sort((a, b) => (a.score!.time - b.score!.time) || (a.score!.guesses - b.score!.guesses)),
+        liElement: (team: TeamResult) => (
+          <li
+            key={team.teamName}
+            style={liStyle(team, backgroundColor(team, 'time'))}
+          >
+            {displayTimeResult(team)}
+          </li>
+        )
       },
       {
         heading: 'Guesses',
         teamResults: [...teamsPlayed]
-          .sort((a, b) => a.score!.guesses - b.score!.guesses),
-        displayFn: displayGuessResult
+          .sort((a, b) => (a.score!.guesses - b.score!.guesses) || (a.score!.time - b.score!.time)),
+        liElement: (team: TeamResult) => (
+          <li
+            key={team.teamName}
+            style={liStyle(team, backgroundColor(team, 'guess'))}
+          >
+            {displayGuessResult(team)}
+          </li>
+        )
       }
     ] as const
 
@@ -82,16 +98,25 @@ const LeaderboardDisplay = ({ mode, teamResults, teamName }: Props) => {
       <div style={{
         display: 'flex',
         flexDirection: 'row',
-        justifyContent: 'space-between'
+        justifyContent: 'space-evenly'
       }}>
         {
           columns.map(column => (
             <div style={{
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              alignItems: 'center'
             }}>
-              <h3 key={column.heading}>{column.heading}</h3>
-              {teamsDisplay(column.teamResults, column.displayFn)}
+              <h3 
+                key={column.heading}
+                style={{
+                  fontSize: '1.6em',
+                  marginBottom: '0px',
+                }}
+              >
+                {column.heading}
+              </h3>
+              {teamsDisplay(column.teamResults, column.liElement)}
             </div>
           ))
         }
@@ -99,16 +124,53 @@ const LeaderboardDisplay = ({ mode, teamResults, teamName }: Props) => {
     );
   }
 
+  const followContributeLink = () => {
+    chrome.tabs.create({
+      url: 'https://github.com/adhurjaty/leaderboard-extension'
+    });
+  }
+
   return (
     <div>
-      <h2>Leaderboard: {mode}{isFinalResults() ? ' (Final)' : ''}</h2>
+      <h2 style={{
+        textAlign: 'center',
+        marginBottom: '0px',
+      }}>
+        Leaderboard: {mode}{isFinalResults() ? ' (Final)' : ''}
+      </h2>
       {leaderboardDisplay()}
       {teamsRemaining.length > 0 && (
         <>
-          <h3>Teams remaining</h3>
+          <h3>
+            Teams remaining
+          </h3>
           <p>{teamsRemaining.map(team => team.teamName).join(', ')}</p>
         </>
       )}
+      <div style={{
+        display: 'inline-block',
+        position: 'fixed',
+        left: '100%',
+        top: '100%',
+        transform: 'translate(-100%, -100%)',
+        whiteSpace: 'nowrap',
+      }}>
+        <p style={{
+          fontSize: '1.1em',
+          margin: '0px',
+          padding: '15px',
+          textAlign: 'right',
+        }}>
+          Wanna make this better?
+          <br/>
+          <a
+            href="#"
+            onClick={followContributeLink}
+          >
+            Contribute!
+          </a>
+        </p>
+      </div>
     </div>
   )
 };
